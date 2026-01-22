@@ -21,8 +21,8 @@ def render_configuracoes(brands: list[str], settings: dict, admin_auth: bool, up
         data=upload_history or [],
         page_size=5,
         style_table={"overflowX": "auto"},
-        style_cell={"backgroundColor": "#0f172a", "color": "#e2e8f0", "padding": "6px"},
-        style_header={"backgroundColor": "#1e293b", "fontWeight": "bold"},
+        style_cell={"backgroundColor": "var(--panel)", "color": "var(--text)", "padding": "6px"},
+        style_header={"backgroundColor": "var(--panel-2)", "fontWeight": "bold"},
     )
 
     return html.Div(

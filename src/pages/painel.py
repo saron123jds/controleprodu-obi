@@ -11,13 +11,19 @@ from .processos import render_processos
 from .produtos import render_produtos
 
 
-def _section(title: str, content: html.Div) -> html.Div:
+def _module(title: str, subtitle: str, content: html.Div) -> html.Div:
     return html.Div(
         [
-            html.H3(title, className="section-title"),
-            content,
+            html.Div(
+                [
+                    html.H3(title, className="module-title"),
+                    html.P(subtitle, className="module-subtitle"),
+                ],
+                className="module-header",
+            ),
+            html.Div(content, className="module-body"),
         ],
-        className="section",
+        className="module-card",
     )
 
 
@@ -89,13 +95,99 @@ def render_painel(
 
     return html.Div(
         [
-            _section("Visão Geral", render_home(df, data_quality_alerts)),
-            _section("Processos", render_processos(df)),
-            _section("Produtos", render_produtos(df)),
-            _section("Atrasos", render_atrasos(df, critical_delay_days)),
-            _section("Metas", render_metas(df, settings)),
-            _section("Dados", html.Div(_data_table(df), className="card")),
-            _section("Painel do Admin", admin_panel),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.H2("Panorama da Produção", className="hero-title"),
+                            html.P(
+                                "Acompanhe metas, gargalos e alertas críticos em um único painel.",
+                                className="hero-subtitle",
+                            ),
+                            html.Div(
+                                [
+                                    html.Div(f"Marcas ativas: {len(brands)}", className="hero-pill"),
+                                    html.Div(
+                                        f"Alertas de dados: {len(data_quality_alerts)}",
+                                        className="hero-pill alert",
+                                    ),
+                                ],
+                                className="hero-pills",
+                            ),
+                        ],
+                        className="hero-card",
+                    ),
+                    html.Div(
+                        [
+                            html.H4("Status operacional"),
+                            html.P(
+                                "Revise os dados enviados e valide o progresso semanal da produção.",
+                                className="muted",
+                            ),
+                            html.Ul(
+                                [
+                                    html.Li("Conferir uploads recentes"),
+                                    html.Li("Ajustar metas e dias úteis"),
+                                    html.Li("Atualizar logotipo e branding"),
+                                ],
+                                className="hero-list",
+                            ),
+                        ],
+                        className="hero-card",
+                    ),
+                ],
+                className="hero-grid",
+            ),
+            html.Div(
+                [
+                    _module(
+                        "Visão Geral",
+                        "Indicadores principais, alertas e tendências.",
+                        render_home(df, data_quality_alerts),
+                    ),
+                    _module(
+                        "Processos",
+                        "Volume de produção e atraso médio por etapa.",
+                        render_processos(df),
+                    ),
+                    _module(
+                        "Produtos",
+                        "Distribuição por produto e coleção.",
+                        render_produtos(df),
+                    ),
+                ],
+                className="module-grid",
+            ),
+            html.Div(
+                [
+                    _module(
+                        "Atrasos",
+                        "Itens críticos e acompanhamento diário.",
+                        render_atrasos(df, critical_delay_days),
+                    ),
+                    _module(
+                        "Metas",
+                        "Comparativo entre produção realizada e objetivos.",
+                        render_metas(df, settings),
+                    ),
+                ],
+                className="module-grid two-col",
+            ),
+            html.Div(
+                [
+                    _module(
+                        "Dados",
+                        "Prévia dos registros carregados no sistema.",
+                        html.Div(_data_table(df), className="card"),
+                    ),
+                    _module(
+                        "Administração",
+                        "Configuração de metas, upload e branding.",
+                        admin_panel,
+                    ),
+                ],
+                className="module-grid two-col",
+            ),
         ],
-        className="page",
+        className="dashboard",
     )
