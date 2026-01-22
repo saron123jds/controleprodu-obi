@@ -3,26 +3,11 @@ from __future__ import annotations
 from dash import dcc, html
 
 
-NAV_OPTIONS = [
-    {"label": "Visão Geral", "value": "home"},
-    {"label": "Processos", "value": "processos"},
-    {"label": "Produtos", "value": "produtos"},
-    {"label": "Atrasos", "value": "atrasos"},
-    {"label": "Metas", "value": "metas"},
-    {"label": "Configurações", "value": "configuracoes"},
-]
-
-
 def sidebar() -> html.Div:
     return html.Div(
         [
             html.Div(id="logo-slot", className="logo-slot"),
-            dcc.RadioItems(
-                id="nav",
-                options=NAV_OPTIONS,
-                value="home",
-                className="nav",
-            ),
+            html.Div("Painel único", className="nav-title"),
             html.Div(id="data-status", className="data-status"),
         ],
         className="sidebar",
