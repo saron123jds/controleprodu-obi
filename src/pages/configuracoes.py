@@ -1,121 +1,93 @@
 from __future__ import annotations
-from dash import html, dcc
 
-def layout(available_brands, settings):
-    weekly_target = settings.get("weekly_target", 0) or 0
-    workdays = settings.get("workdays", 5) or 5
-    daily_override = settings.get("daily_target_override", None)
-    selected_brands = settings.get("selected_brands", None)
-    crit = settings.get("critical_delay_days", 3) or 3
+from dash import dcc, html
 
-    daily_auto = (float(weekly_target) / int(workdays)) if int(workdays) else 0
+
+def render_configuracoes(brands: list[str], settings: dict) -> html.Div:
+    selected = settings.get("selected_brands") or []
+    weekly_target = settings.get("weekly_target") or 0
+    workdays = settings.get("workdays") or 5
+    daily_target_override = settings.get("daily_target_override")
+    critical_delay_days = settings.get("critical_delay_days") or 1
+
+    daily_auto = weekly_target / workdays if workdays else 0
 
     return html.Div(
         [
+            html.H3("Configurações"),
             html.Div(
                 [
-                    html.Div("Configurações", className="panel-title"),
-                    html.Div("Aqui você define metas, escolhe marcas exibidas e envia a logo do dashboard.", className="small"),
-                    html.Div("O upload do arquivo fica disponível na barra lateral esquerda.", className="small"),
+                    html.H4("Upload de dados"),
+                    dcc.Upload(
+                        id="upload-data",
+                        children=html.Div(["Arraste e solte ou ", html.A("Selecione um arquivo")]),
+                        className="upload",
+                        multiple=False,
+                    ),
+                    html.Button("Recarregar dados", id="btn-reload", className="primary-btn"),
                 ],
-                className="panel",
+                className="card",
             ),
-
             html.Div(
                 [
-                    html.Div("1) Marcas exibidas no painel", className="panel-title"),
+                    html.H4("Marcas exibidas"),
                     dcc.Dropdown(
-                        id="cfg-brands",
-                        options=[{"label": b, "value": b} for b in sorted(available_brands)],
-                        value=selected_brands if selected_brands else sorted(available_brands),
+                        id="selected-brands",
+                        options=[{"label": b, "value": b} for b in brands],
+                        value=selected,
                         multi=True,
                         placeholder="Selecione as marcas",
                     ),
-                    html.Div("Se quiser ver todas, selecione todas.", className="small", style={"marginTop":"8px"}),
                 ],
-                className="panel",
+                className="card",
             ),
-
             html.Div(
                 [
-                    html.Div("2) Metas", className="panel-title"),
+                    html.H4("Metas"),
                     html.Div(
                         [
-                            html.Div(
-                                [
-                                    html.Div("Meta semanal (peças)", className="small"),
-                                    dcc.Input(id="cfg-weekly", type="number", value=weekly_target, className="input"),
-                                ]
-                            ),
-                            html.Div(
-                                [
-                                    html.Div("Dias úteis na semana", className="small"),
-                                    dcc.Input(id="cfg-workdays", type="number", value=workdays, className="input"),
-                                ]
-                            ),
-                            html.Div(
-                                [
-                                    html.Div("Meta diária (manual) — deixe vazio para automática", className="small"),
-                                    dcc.Input(id="cfg-daily-override", type="number", value=daily_override, className="input"),
-                                ]
-                            ),
-                            html.Div(
-                                [
-                                    html.Div("Meta diária automática calculada", className="small"),
-                                    html.Div(f"{daily_auto:.1f} peças/dia", style={"fontWeight":"800", "marginTop":"6px"}),
-                                ]
-                            ),
-                        ],
-                        className="row",
+                            html.Label("Meta semanal"),
+                            dcc.Input(id="weekly-target", type="number", value=weekly_target),
+                        ]
                     ),
+                    html.Div(
+                        [
+                            html.Label("Dias úteis"),
+                            dcc.Input(id="workdays", type="number", value=workdays),
+                        ]
+                    ),
+                    html.Div(
+                        [
+                            html.Label("Meta diária (override opcional)"),
+                            dcc.Input(id="daily-target-override", type="number", value=daily_target_override),
+                        ]
+                    ),
+                    html.Div(f"Meta diária automática: {daily_auto:,.0f}", className="hint"),
                 ],
-                className="panel",
+                className="card",
             ),
-
             html.Div(
                 [
-                    html.Div("3) Logo do dashboard", className="panel-title"),
+                    html.H4("Logo"),
                     dcc.Upload(
                         id="upload-logo",
-                        children=html.Div(["Envie um PNG/JPG da sua logo"]),
-                        style={
-                            "width": "100%", "height": "70px", "lineHeight": "70px",
-                            "borderWidth": "1px", "borderStyle": "dashed",
-                            "borderRadius": "18px", "textAlign": "center",
-                            "borderColor": "rgba(255,255,255,.18)",
-                            "background": "rgba(255,255,255,.03)"
-                        },
+                        children=html.Div(["Enviar logo (PNG/JPG)"]),
+                        className="upload",
                         multiple=False,
                     ),
-                    html.Div(id="logo-msg", className="small", style={"marginTop":"8px"}),
                 ],
-                className="panel",
+                className="card",
             ),
-
             html.Div(
                 [
-                    html.Div("4) Regras", className="panel-title"),
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Div("Atraso crítico (dias)", className="small"),
-                                    dcc.Input(id="cfg-critical", type="number", value=crit, className="input"),
-                                ]
-                            ),
-                        ],
-                        className="row",
-                    ),
+                    html.H4("Regras"),
+                    html.Label("Atraso crítico (dias)"),
+                    dcc.Input(id="critical-delay-days", type="number", value=critical_delay_days),
                 ],
-                className="panel",
+                className="card",
             ),
-
-            html.Div(
-                [
-                    html.Button("Salvar configurações", id="btn-save", className="btn"),
-                    html.Div(id="cfg-msg", className="small", style={"marginTop":"10px"}),
-                ],
-                className="panel",
-            ),
-        ]
+            html.Button("Salvar configurações", id="btn-save-settings", className="primary-btn"),
+            html.Div(id="settings-status", className="status-line"),
+        ],
+        className="page",
     )

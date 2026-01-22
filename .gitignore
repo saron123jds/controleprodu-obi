@@ -1,10 +1,12 @@
 .venv/
 __pycache__/
 *.pyc
-
-data/app.db
-data/uploads/
-data/latest_upload.txt
-
-assets/logo.png
 .vscode/
+
+# data
+/data/app.db
+/data/uploads/
+/data/latest_upload.txt
+
+# assets
+/assets/logo.png

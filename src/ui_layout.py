@@ -1,76 +1,56 @@
 from __future__ import annotations
-from dash import html, dcc
 
-def sidebar():
+from dash import dcc, html
+
+
+NAV_OPTIONS = [
+    {"label": "Visão Geral", "value": "home"},
+    {"label": "Processos", "value": "processos"},
+    {"label": "Produtos", "value": "produtos"},
+    {"label": "Atrasos", "value": "atrasos"},
+    {"label": "Metas", "value": "metas"},
+    {"label": "Configurações", "value": "configuracoes"},
+]
+
+
+def sidebar() -> html.Div:
     return html.Div(
         [
-            html.Div("Dashboard PCP", className="app-title"),
-            html.Div(className="sidebar-sep"),
+            html.Div(id="logo-slot", className="logo-slot"),
             dcc.RadioItems(
                 id="nav",
-                options=[
-                    {"label":"Dashboard", "value":"dashboard"},
-                    {"label":"Admin", "value":"admin"},
-                ],
-                value="dashboard",
-                className="nav-hidden",
+                options=NAV_OPTIONS,
+                value="home",
+                className="nav",
             ),
-            html.Div(
-                [
-                    html.Div("Carregar dados", className="section-title"),
-                    dcc.Upload(
-                        id="upload-data",
-                        children=html.Div(["Arraste e solte aqui ou ", html.B("clique para selecionar"), " (Excel/CSV)"]),
-                        className="upload-box",
-                        multiple=False,
-                        accept=".csv,.xlsx,.xls",
-                    ),
-                    html.Button("Recarregar dados", id="btn-reload", className="btn btn-block"),
-                ],
-                className="sidebar-block",
-            ),
-            html.Div(id="logo-slot"),
-            html.Div(id="data-status", className="muted"),
+            html.Div(id="data-status", className="data-status"),
         ],
         className="sidebar",
     )
 
-def top_bar():
+
+def top_bar() -> html.Div:
     return html.Div(
         [
-            html.Div("Visão geral completa", className="top-title"),
-            html.Button("⚙️", id="admin-gear", className="gear-btn", title="Admin"),
+            html.H2("Dashboard PCP", className="app-title"),
+            html.Div(id="status-line", className="status-line"),
         ],
         className="top-bar",
     )
 
-def top_filters():
+
+def top_filters() -> html.Div:
     return html.Div(
         [
-            html.Div(
-                [
-                    html.Div("Filtros", className="section-title"),
-                    dcc.Dropdown(id="f_marca", multi=True, placeholder="Marca(s)"),
-                    dcc.Dropdown(id="f_colecao", multi=True, placeholder="Coleção(ões)"),
-                    dcc.Dropdown(id="f_processo", multi=True, placeholder="Processo(s)"),
-                    dcc.Dropdown(id="f_status_prod", multi=True, placeholder="Status Produção"),
-                    dcc.Dropdown(id="f_status_venc", multi=True, placeholder="Status Vencimento"),
-                ],
-                className="filters-card",
-            )
+            dcc.Dropdown(id="f_marca", multi=True, placeholder="Marca"),
+            dcc.Dropdown(id="f_colecao", multi=True, placeholder="Coleção"),
+            dcc.Dropdown(id="f_processo", multi=True, placeholder="Processo"),
+            dcc.Dropdown(id="f_status_prod", multi=True, placeholder="Status Produção"),
+            dcc.Dropdown(id="f_status_venc", multi=True, placeholder="Status Vencimento"),
         ],
         className="top-filters",
     )
 
-def kpi_card(title: str, value: str, subtitle: str | None = None):
-    return html.Div(
-        [
-            html.Div(title, className="kpi-title"),
-            html.Div(value, className="kpi-value"),
-            html.Div(subtitle or "", className="kpi-subtitle"),
-        ],
-        className="kpi-card",
-    )
 
-def page_container():
-    return html.Div(id="page", className="page")
+def page_container() -> html.Div:
+    return html.Div(id="page", className="page-container")
