@@ -27,9 +27,40 @@ REQUIRED_COLUMNS = [
     "RESPONSAVEL",
 ]
 
+COLUMN_ALIASES = {
+    "COD_COLECAO": "CODIGO_COLECAO",
+    "COLECAO": "NOME_COLECAO",
+    "COD_PRODUTO": "CODIGO_PRODUTO",
+    "REF_PRODUTO": "REFERENCIA_PRODUTO",
+    "DESCRICAO": "DESCRICAO_PRODUTO",
+    "COD_PROCESSO": "CODIGO_PROCESSO",
+    "PROCESSO": "NOME_PROCESSO",
+    "ORDEM": "ORDEM_PROCESSO",
+    "EMISSAO": "EMISSAO_PRODUCAO",
+    "VENCIMENTO": "VENCIMENTO_PRODUCAO",
+    "CONCLUSAO": "CONCLUSAO_PRODUCAO",
+    "STATUS_PROD": "STATUS_PRODUCAO",
+    "STATUS_VENC": "STATUS_VENCIMENTO",
+    "DIAS_PREV": "DIAS_PREVISAO",
+    "DIAS_CONC": "DIAS_CONCLUSAO",
+    "LOTE": "LOTE_PRODUCAO",
+    "QTDE": "QTDE_PRODUCAO",
+    "RESP": "RESPONSAVEL",
+    "RESPONSAVEL": "RESPONSAVEL",
+}
+
 
 def _drop_unnamed(df: pd.DataFrame) -> pd.DataFrame:
     return df.loc[:, ~df.columns.str.contains("^Unnamed", case=False, na=False)]
+
+
+def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    renamed = {}
+    for col in df.columns:
+        normalized = str(col).strip().upper().replace(" ", "_")
+        normalized = COLUMN_ALIASES.get(normalized, normalized)
+        renamed[col] = normalized
+    return df.rename(columns=renamed)
 
 
 def read_any(path: str) -> pd.DataFrame:
@@ -42,7 +73,8 @@ def read_any(path: str) -> pd.DataFrame:
         df = pd.read_csv(file_path, sep=None, engine="python")
     else:
         raise ValueError("Formato inválido. Use .xlsx, .xls ou .csv")
-    return _drop_unnamed(df)
+    df = _drop_unnamed(df)
+    return normalize_columns(df)
 
 
 def read_upload(contents: str, filename: str) -> pd.DataFrame:
@@ -54,7 +86,8 @@ def read_upload(contents: str, filename: str) -> pd.DataFrame:
         df = pd.read_csv(io.StringIO(decoded.decode("utf-8")), sep=None, engine="python")
     else:
         raise ValueError("Formato inválido. Use .xlsx, .xls ou .csv")
-    return _drop_unnamed(df)
+    df = _drop_unnamed(df)
+    return normalize_columns(df)
 
 
 def validate_columns(df: pd.DataFrame) -> tuple[bool, list[str]]:

@@ -53,6 +53,8 @@ def render_painel(
     brands: list[str],
     admin_auth: bool,
     critical_delay_days: int,
+    upload_history: list[dict],
+    data_quality_alerts: list[str],
 ) -> html.Div:
     admin_panel = html.Div(
         [
@@ -77,7 +79,7 @@ def render_painel(
             ),
             html.Div(
                 [
-                    render_configuracoes(brands, settings, admin_auth),
+                    render_configuracoes(brands, settings, admin_auth, upload_history),
                 ],
                 className="admin-config",
             ),
@@ -87,7 +89,7 @@ def render_painel(
 
     return html.Div(
         [
-            _section("Visão Geral", render_home(df)),
+            _section("Visão Geral", render_home(df, data_quality_alerts)),
             _section("Processos", render_processos(df)),
             _section("Produtos", render_produtos(df)),
             _section("Atrasos", render_atrasos(df, critical_delay_days)),

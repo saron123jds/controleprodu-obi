@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dash import dcc, html
+from dash import dash_table, dcc, html
 
 
-def render_configuracoes(brands: list[str], settings: dict, admin_auth: bool) -> html.Div:
+def render_configuracoes(brands: list[str], settings: dict, admin_auth: bool, upload_history: list[dict]) -> html.Div:
     selected = settings.get("selected_brands") or []
     weekly_target = settings.get("weekly_target") or 0
     workdays = settings.get("workdays") or 5
@@ -12,6 +12,18 @@ def render_configuracoes(brands: list[str], settings: dict, admin_auth: bool) ->
 
     daily_auto = weekly_target / workdays if workdays else 0
     locked = not admin_auth
+    history_table = dash_table.DataTable(
+        columns=[
+            {"name": "Arquivo", "id": "filename"},
+            {"name": "Data/Hora", "id": "uploaded_at"},
+            {"name": "Caminho", "id": "path"},
+        ],
+        data=upload_history or [],
+        page_size=5,
+        style_table={"overflowX": "auto"},
+        style_cell={"backgroundColor": "#0f172a", "color": "#e2e8f0", "padding": "6px"},
+        style_header={"backgroundColor": "#1e293b", "fontWeight": "bold"},
+    )
 
     return html.Div(
         [
@@ -102,6 +114,13 @@ def render_configuracoes(brands: list[str], settings: dict, admin_auth: bool) ->
                         value=critical_delay_days,
                         disabled=locked,
                     ),
+                ],
+                className="card",
+            ),
+            html.Div(
+                [
+                    html.H4("Histórico de uploads"),
+                    history_table if upload_history else html.Div("Sem uploads registrados.", className="muted"),
                 ],
                 className="card",
             ),

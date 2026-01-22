@@ -33,3 +33,41 @@ def compute_kpis(df: pd.DataFrame) -> dict:
         "percentual_no_prazo": float(percentual_no_prazo),
         "lead_time_medio": float(lead_time_medio) if lead_time_medio == lead_time_medio else 0,
     }
+
+
+def compute_kpis_by(df: pd.DataFrame, group_col: str) -> pd.DataFrame:
+    if df.empty or group_col not in df.columns:
+        return pd.DataFrame()
+
+    df = df.copy()
+    df["CONCLUIDO_QTDE"] = df["QTDE_PRODUCAO"].where(
+        df["STATUS_PRODUCAO"].astype(str).str.upper() == "CONCLUIDO",
+        0,
+    )
+
+    grouped = df.groupby(group_col, as_index=False).agg(
+        pecas=("QTDE_PRODUCAO", "sum"),
+        concluidas=("CONCLUIDO_QTDE", "sum"),
+        em_aberto=("EM_ABERTO", "sum"),
+        atrasados=("VENCIDO", "sum"),
+        lead_time_medio=("DIAS_CONCLUSAO", "mean"),
+    )
+    grouped["lead_time_medio"] = grouped["lead_time_medio"].fillna(0)
+    return grouped
+
+
+def compute_projection(
+    weekly_target: float,
+    concluded_week: float,
+    workdays: int,
+    today: pd.Timestamp,
+) -> dict:
+    elapsed_workdays = max(min(today.weekday() + 1, workdays), 1)
+    pace_daily = concluded_week / elapsed_workdays if elapsed_workdays else 0
+    projected_week = pace_daily * workdays
+    gap = weekly_target - projected_week
+    return {
+        "pace_daily": pace_daily,
+        "projected_week": projected_week,
+        "gap": gap,
+    }

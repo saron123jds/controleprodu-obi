@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import datetime as dt
 import os
 from pathlib import Path
 import pandas as pd
@@ -9,8 +10,8 @@ from dash import Dash, Input, Output, State, callback_context, dcc, html, no_upd
 import plotly.io as pio
 
 from src.data_loader import read_any, read_upload, validate_columns, coerce_types
-from src.transforms import add_derived, apply_brand_filter
-from src.settings_store import get_all_settings, set_setting
+from src.transforms import add_derived, apply_brand_filter, validate_data_quality
+from src.settings_store import add_upload_history, get_all_settings, get_upload_history, set_setting
 from src.ui_layout import sidebar, top_bar, top_filters, page_container
 from src.pages import render_painel
 
@@ -142,6 +143,7 @@ def init_or_reload(_, contents, filename):
             else:
                 df.to_excel(save_path, index=False)
             _write_latest_path(save_path)
+            add_upload_history(DB_PATH, filename, save_path, dt.datetime.now().isoformat(timespec="seconds"))
             meta = {"source": f"Upload: {filename}", "path": save_path}
             return df.to_json(date_format="iso", orient="split"), meta, settings, f"Carregado: {filename}"
         except Exception as exc:
@@ -208,6 +210,8 @@ def render_page(data_json, settings, admin_auth, f_marca, f_colecao, f_processo,
     )
 
     critical_delay_days = int(settings.get("critical_delay_days") or 1)
+    upload_history = get_upload_history(DB_PATH, limit=8)
+    data_quality_alerts = validate_data_quality(df)
 
     brands = sorted(df["MARCA"].dropna().unique().tolist()) if not df.empty else []
     page = render_painel(
@@ -216,11 +220,15 @@ def render_page(data_json, settings, admin_auth, f_marca, f_colecao, f_processo,
         brands=brands,
         admin_auth=bool(admin_auth),
         critical_delay_days=critical_delay_days,
+        upload_history=upload_history,
+        data_quality_alerts=data_quality_alerts,
     )
 
     logo_path = settings.get("logo_path", "assets/logo.png")
     logo_component = html.Img(src=f"/{logo_path}", className="logo") if Path(logo_path).exists() else html.Div("Logo")
     status = settings.get("status", "Pronto")
+    if data_quality_alerts:
+        status = f"{status} | Alertas de dados: {len(data_quality_alerts)}"
     return page, logo_component, status
 
 
