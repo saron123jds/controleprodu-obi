@@ -1,28 +1,35 @@
-\
 from __future__ import annotations
+
 import pandas as pd
 
-def kpi_totals(df: pd.DataFrame) -> dict:
-    total = int(df["QTDE_PRODUCAO"].sum()) if "QTDE_PRODUCAO" in df.columns else 0
-    concl = int(df.loc[df["STATUS_PRODUCAO"].astype(str).str.upper().eq("CONCLUIDO"), "QTDE_PRODUCAO"].sum()) if "STATUS_PRODUCAO" in df.columns else 0
-    aberto = int(df.loc[~df["STATUS_PRODUCAO"].astype(str).str.upper().eq("CONCLUIDO"), "QTDE_PRODUCAO"].sum()) if "STATUS_PRODUCAO" in df.columns else 0
 
-    atrasados_itens = int((df.get("VENCIDO", False) == True).sum()) if "VENCIDO" in df.columns else 0
-    pct_prazo = None
-    if "STATUS_VENCIMENTO" in df.columns:
-        sv = df["STATUS_VENCIMENTO"].astype(str).str.upper()
-        if len(sv) > 0:
-            pct_prazo = float((~sv.eq("EM ATRASO")).mean()) * 100.0
+def compute_kpis(df: pd.DataFrame) -> dict:
+    if df.empty:
+        return {
+            "pecas": 0,
+            "concluidas": 0,
+            "em_aberto": 0,
+            "atrasados": 0,
+            "percentual_no_prazo": 0,
+            "lead_time_medio": 0,
+        }
 
-    lead = None
-    if "DIAS_CONCLUSAO" in df.columns:
-        lead = float(pd.to_numeric(df["DIAS_CONCLUSAO"], errors="coerce").dropna().mean()) if df["DIAS_CONCLUSAO"].notna().any() else None
+    total_pecas = df["QTDE_PRODUCAO"].sum()
+    concluidas = df.loc[df["STATUS_PRODUCAO"].astype(str).str.upper() == "CONCLUIDO", "QTDE_PRODUCAO"].sum()
+    em_aberto = df["EM_ABERTO"].sum()
+    atrasados = df["VENCIDO"].sum()
+
+    status_venc = df["STATUS_VENCIMENTO"].astype(str).str.upper()
+    percentual_em_atraso = (status_venc == "EM ATRASO").mean() if len(df) else 0
+    percentual_no_prazo = 1 - percentual_em_atraso
+
+    lead_time_medio = df["DIAS_CONCLUSAO"].mean() if "DIAS_CONCLUSAO" in df.columns else 0
 
     return {
-        "total": total,
-        "concluidas": concl,
-        "aberto": aberto,
-        "atrasados_itens": atrasados_itens,
-        "pct_prazo": pct_prazo,
-        "lead_medio": lead,
+        "pecas": int(total_pecas),
+        "concluidas": int(concluidas),
+        "em_aberto": int(em_aberto),
+        "atrasados": int(atrasados),
+        "percentual_no_prazo": float(percentual_no_prazo),
+        "lead_time_medio": float(lead_time_medio) if lead_time_medio == lead_time_medio else 0,
     }
