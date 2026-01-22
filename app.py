@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import pandas as pd
 
-from dash import Dash, html, dcc, Input, Output, State, no_update
+from dash import Dash, html, dcc, Input, Output, State, no_update, ctx
 import dash
 import plotly.io as pio
 
@@ -231,12 +231,12 @@ def render_page(nav, data_json, settings, admin_auth, f_marca, f_colecao, f_proc
     prevent_initial_call=True,
 )
 def toggle_admin_view(gear_clicks, back_clicks):
-    if not dash.callback_context.triggered:
+    triggered_id = ctx.triggered_id
+    if not triggered_id:
         return no_update
-    triggered = dash.callback_context.triggered[0]["prop_id"]
-    if triggered == "admin-gear.n_clicks":
+    if triggered_id == "admin-gear":
         return "admin"
-    if triggered == "btn-back-dashboard.n_clicks":
+    if triggered_id == "btn-back-dashboard":
         return "dashboard"
     return no_update
 

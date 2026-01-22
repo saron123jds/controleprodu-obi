@@ -29,7 +29,7 @@ def read_any(path: str) -> pd.DataFrame:
     elif path.lower().endswith(".xlsx") or path.lower().endswith(".xls"):
         df = pd.read_excel(path, dtype=str)
     else:
-        raise ValueError("Formato não suportado. Envie .xlsx/.xls ou .csv")
+        raise ValueError("Formato não suportado. Envie Excel/CSV (.xlsx/.xls/.csv).")
     # drop unnamed empty columns
     df = df.loc[:, ~df.columns.str.match(r"^Unnamed")]
     return df
@@ -42,7 +42,7 @@ def read_upload(contents: str, filename: str) -> pd.DataFrame:
     elif filename.lower().endswith(".xlsx") or filename.lower().endswith(".xls"):
         df = pd.read_excel(decoded, dtype=str)
     else:
-        raise ValueError("Formato não suportado. Envie .xlsx/.xls ou .csv")
+        raise ValueError("Formato não suportado. Envie Excel/CSV (.xlsx/.xls/.csv).")
     df = df.loc[:, ~df.columns.str.match(r"^Unnamed")]
     return df
 
