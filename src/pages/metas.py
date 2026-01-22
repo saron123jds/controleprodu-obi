@@ -1,65 +1,79 @@
-\
 from __future__ import annotations
-from dash import html, dcc
-import plotly.express as px
+
+from dash import dcc, html
 import pandas as pd
+import plotly.express as px
 
-def _iso_week(ts: pd.Timestamp) -> str:
-    return ts.to_period("W").astype(str)
 
-def layout(df: pd.DataFrame, meta: dict):
-    weekly_target = float(meta.get("weekly_target") or 0)
-    workdays = int(meta.get("workdays") or 5)
-    daily_override = meta.get("daily_target_override")
+def _week_bounds(today: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
+    start = today - pd.Timedelta(days=today.weekday())
+    end = start + pd.Timedelta(days=6)
+    return start.normalize(), end.normalize()
 
-    daily_target = None
-    if daily_override is None:
-        daily_target = weekly_target / workdays if workdays else 0
-        daily_target_mode = "Automática"
-    else:
-        daily_target = float(daily_override or 0)
-        daily_target_mode = "Manual"
 
-    # progresso hoje/semana
+def render_metas(df: pd.DataFrame, settings: dict) -> html.Div:
     today = pd.Timestamp.today().normalize()
-    week_key = today.to_period("W").astype(str)
+    week_start, week_end = _week_bounds(today)
 
-    concl = df[df["STATUS_PRODUCAO"].astype(str).str.upper().eq("CONCLUIDO")]
-    concl_today = 0
-    concl_week = 0
-    if "CONCLUSAO_PRODUCAO" in concl.columns:
-        concl_today = int(concl[concl["CONCLUSAO_PRODUCAO"].dt.normalize().eq(today)]["QTDE_PRODUCAO"].sum())
-        concl_week = int(concl[concl["CONCLUSAO_PRODUCAO"].dt.to_period("W").astype(str).eq(week_key)]["QTDE_PRODUCAO"].sum())
+    weekly_target = settings.get("weekly_target") or 0
+    workdays = settings.get("workdays") or 5
+    daily_override = settings.get("daily_target_override")
 
-    # série da semana atual
-    if "CONCLUSAO_PRODUCAO" in concl.columns:
-        week_series = concl[concl["CONCLUSAO_PRODUCAO"].dt.to_period("W").astype(str).eq(week_key)].copy()
-        week_series["DIA"] = week_series["CONCLUSAO_PRODUCAO"].dt.date
-        by_day = week_series.groupby("DIA")["QTDE_PRODUCAO"].sum().reset_index()
+    daily_target = daily_override if daily_override is not None else (weekly_target / workdays if workdays else 0)
+
+    concluded_today = 0
+    concluded_week = 0
+
+    if not df.empty:
+        concluido = df[df["STATUS_PRODUCAO"].astype(str).str.upper() == "CONCLUIDO"]
+        concluded_today = concluido[concluido["CONCLUSAO_PRODUCAO"].dt.normalize() == today]["QTDE_PRODUCAO"].sum()
+        concluded_week = concluido[
+            (concluido["CONCLUSAO_PRODUCAO"].dt.normalize() >= week_start)
+            & (concluido["CONCLUSAO_PRODUCAO"].dt.normalize() <= week_end)
+        ]["QTDE_PRODUCAO"].sum()
+
+    if not df.empty:
+        week_data = df[
+            (df["CONCLUSAO_PRODUCAO"].dt.normalize() >= week_start)
+            & (df["CONCLUSAO_PRODUCAO"].dt.normalize() <= week_end)
+        ]
+        by_day = week_data.groupby(week_data["CONCLUSAO_PRODUCAO"].dt.day_name(), as_index=False)["QTDE_PRODUCAO"].sum()
+        order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        by_day["day_order"] = by_day["CONCLUSAO_PRODUCAO"].apply(lambda x: order.index(x) if x in order else 99)
+        by_day = by_day.sort_values("day_order")
+        bar_fig = px.bar(by_day, x="CONCLUSAO_PRODUCAO", y="QTDE_PRODUCAO", title="Concluído por dia (semana atual)")
     else:
-        by_day = pd.DataFrame({"DIA": [], "QTDE_PRODUCAO": []})
-
-    fig = px.bar(by_day, x="DIA", y="QTDE_PRODUCAO", title="Concluído por dia (semana atual)")
+        bar_fig = px.bar(title="Concluído por dia (semana atual)")
 
     return html.Div(
         [
             html.Div(
                 [
-                    html.Div("Metas", className="panel-title"),
                     html.Div(
                         [
-                            html.Div([html.B("Meta semanal:"), f" {weekly_target:.0f} peças"]),
-                            html.Div([html.B("Dias úteis:"), f" {workdays}"]),
-                            html.Div([html.B("Meta diária:"), f" {daily_target:.1f} peças ({daily_target_mode})"]),
-                            html.Div([html.B("Hoje:"), f" {concl_today} / {daily_target:.1f} peças"]),
-                            html.Div([html.B("Semana:"), f" {concl_week} / {weekly_target:.0f} peças"]),
+                            html.Div("Hoje", className="kpi-title"),
+                            html.Div(f"{concluded_today:,} / {daily_target:,.0f}", className="kpi-value"),
                         ],
-                        className="row",
-                        style={"gap":"18px", "marginTop":"8px"}
+                        className="kpi-card",
+                    ),
+                    html.Div(
+                        [
+                            html.Div("Semana", className="kpi-title"),
+                            html.Div(f"{concluded_week:,} / {weekly_target:,.0f}", className="kpi-value"),
+                        ],
+                        className="kpi-card",
+                    ),
+                    html.Div(
+                        [
+                            html.Div("Meta diária", className="kpi-title"),
+                            html.Div(f"{daily_target:,.0f}", className="kpi-value"),
+                        ],
+                        className="kpi-card",
                     ),
                 ],
-                className="panel",
+                className="kpi-grid",
             ),
-            html.Div([dcc.Graph(figure=fig)], className="panel"),
-        ]
+            dcc.Graph(figure=bar_fig, className="chart"),
+        ],
+        className="page",
     )

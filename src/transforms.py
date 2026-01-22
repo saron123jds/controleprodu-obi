@@ -1,54 +1,41 @@
-\
 from __future__ import annotations
-import pandas as pd
-import numpy as np
 
-def detect_brand(nome_colecao: str) -> str:
-    if not isinstance(nome_colecao, str):
-        return "DESCONHECIDA"
-    up = nome_colecao.upper()
-    if "DAZUL" in up or "D'AZUL" in up or "D AZUL" in up:
+import pandas as pd
+
+
+def _detect_brand(name: str) -> str:
+    if "DAZUL" in name:
         return "DAZUL"
-    if "SARON" in up:
+    if "SARON" in name:
         return "SARON"
-    if "FILOBLU" in up or "FILO" in up:
+    if "FILOBLU" in name:
         return "FILOBLU"
     return "OUTRAS"
 
-def add_derived(df: pd.DataFrame, today: pd.Timestamp | None = None) -> pd.DataFrame:
-    out = df.copy()
-    if today is None:
-        today = pd.Timestamp.today().normalize()
 
-    out["MARCA"] = out["NOME_COLECAO"].apply(detect_brand)
-
-    # status helpers
-    out["EM_ABERTO"] = out["CONCLUSAO_PRODUCAO"].isna()
-    out["VENCIDO"] = out["VENCIMENTO_PRODUCAO"].notna() & (out["VENCIMENTO_PRODUCAO"] < today) & out["EM_ABERTO"]
-
-    # days
-    out["DIAS_EM_ABERTO"] = np.where(
-        out["EMISSAO_PRODUCAO"].notna() & out["EM_ABERTO"],
-        (today - out["EMISSAO_PRODUCAO"]).dt.days,
-        np.nan,
-    )
-    out["ATRASO_DIAS"] = np.where(
-        out["VENCIDO"],
-        (today - out["VENCIMENTO_PRODUCAO"]).dt.days,
-        0,
-    )
-
-    # week/day keys for grouping
-    if "CONCLUSAO_PRODUCAO" in out.columns:
-        out["CONCLUSAO_DIA"] = out["CONCLUSAO_PRODUCAO"].dt.date
-        out["CONCLUSAO_SEMANA"] = out["CONCLUSAO_PRODUCAO"].dt.to_period("W").astype(str)
-    if "EMISSAO_PRODUCAO" in out.columns:
-        out["EMISSAO_DIA"] = out["EMISSAO_PRODUCAO"].dt.date
-        out["EMISSAO_SEMANA"] = out["EMISSAO_PRODUCAO"].dt.to_period("W").astype(str)
-
-    return out
-
-def apply_brand_filter(df: pd.DataFrame, selected_brands):
-    if not selected_brands:
+def add_derived(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
         return df
-    return df[df["MARCA"].isin(selected_brands)]
+
+    df = df.copy()
+    df["MARCA"] = df["NOME_COLECAO"].astype(str).str.upper().apply(_detect_brand)
+
+    today = pd.Timestamp.today().normalize()
+    df["EM_ABERTO"] = df["CONCLUSAO_PRODUCAO"].isna()
+    df["VENCIDO"] = (df["VENCIMENTO_PRODUCAO"].dt.normalize() < today) & df["EM_ABERTO"]
+
+    df["DIAS_EM_ABERTO"] = (today - df["EMISSAO_PRODUCAO"].dt.normalize()).dt.days
+    df.loc[~df["EM_ABERTO"], "DIAS_EM_ABERTO"] = pd.NA
+
+    df["ATRASO_DIAS"] = (today - df["VENCIMENTO_PRODUCAO"].dt.normalize()).dt.days
+    df.loc[~df["VENCIDO"], "ATRASO_DIAS"] = 0
+
+    df["CONCLUSAO_DIA"] = df["CONCLUSAO_PRODUCAO"].dt.date
+    df["CONCLUSAO_SEMANA"] = df["CONCLUSAO_PRODUCAO"].dt.to_period("W").dt.start_time
+    return df
+
+
+def apply_brand_filter(df: pd.DataFrame, brands: list[str] | None) -> pd.DataFrame:
+    if not brands:
+        return df
+    return df[df["MARCA"].isin(brands)]
