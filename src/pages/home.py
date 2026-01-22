@@ -6,6 +6,23 @@ from ..ui_layout import kpi_card
 from ..kpis import kpi_totals
 
 def layout(df: pd.DataFrame, meta: dict):
+    if df.empty:
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.Div("Nenhum dado carregado", className="panel-title"),
+                        html.Div(
+                            "Use o upload na barra lateral para enviar seu Excel/CSV. "
+                            "Assim que o arquivo for carregado, os indicadores e gráficos aparecem automaticamente.",
+                            className="small",
+                        ),
+                    ],
+                    className="panel",
+                )
+            ]
+        )
+
     k = kpi_totals(df)
 
     kpis = html.Div(

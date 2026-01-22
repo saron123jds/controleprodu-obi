@@ -15,6 +15,19 @@ def sidebar():
                 value="dashboard",
                 className="nav-hidden",
             ),
+            html.Div(
+                [
+                    html.Div("Carregar dados", className="section-title"),
+                    dcc.Upload(
+                        id="upload-data",
+                        children=html.Div(["Arraste e solte aqui ou ", html.B("clique para selecionar")]),
+                        className="upload-box",
+                        multiple=False,
+                    ),
+                    html.Button("Recarregar dados", id="btn-reload", className="btn btn-block"),
+                ],
+                className="sidebar-block",
+            ),
             html.Div(id="logo-slot"),
             html.Div(id="data-status", className="muted"),
         ],
