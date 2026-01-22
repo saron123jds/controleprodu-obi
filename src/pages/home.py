@@ -77,8 +77,8 @@ def render_home(df: pd.DataFrame, data_quality_alerts: list[str]) -> html.Div:
         data=by_process.sort_values("pecas", ascending=False).head(10).to_dict("records") if not by_process.empty else [],
         page_size=10,
         style_table={"overflowX": "auto"},
-        style_cell={"backgroundColor": "#0f172a", "color": "#e2e8f0", "padding": "6px"},
-        style_header={"backgroundColor": "#1e293b", "fontWeight": "bold"},
+        style_cell={"backgroundColor": "var(--panel)", "color": "var(--text)", "padding": "6px"},
+        style_header={"backgroundColor": "var(--panel-2)", "fontWeight": "bold"},
     )
 
     table_resp = dash_table.DataTable(
@@ -86,8 +86,8 @@ def render_home(df: pd.DataFrame, data_quality_alerts: list[str]) -> html.Div:
         data=by_responsavel.sort_values("pecas", ascending=False).head(10).to_dict("records") if not by_responsavel.empty else [],
         page_size=10,
         style_table={"overflowX": "auto"},
-        style_cell={"backgroundColor": "#0f172a", "color": "#e2e8f0", "padding": "6px"},
-        style_header={"backgroundColor": "#1e293b", "fontWeight": "bold"},
+        style_cell={"backgroundColor": "var(--panel)", "color": "var(--text)", "padding": "6px"},
+        style_header={"backgroundColor": "var(--panel-2)", "fontWeight": "bold"},
     )
 
     return html.Div(

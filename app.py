@@ -98,17 +98,22 @@ app.layout = html.Div(
         dcc.Store(id="store-admin-auth", data=False),
         html.Div(
             [
-                sidebar(),
+                top_bar(),
                 html.Div(
                     [
-                        top_bar(),
-                        top_filters(),
-                        page_container(),
+                        sidebar(),
+                        html.Div(
+                            [
+                                top_filters(),
+                                page_container(),
+                            ],
+                            className="content-area",
+                        ),
                     ],
-                    className="content",
+                    className="workspace",
                 ),
             ],
-            className="app",
+            className="app-shell",
         ),
     ]
 )
