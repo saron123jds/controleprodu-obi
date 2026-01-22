@@ -5,21 +5,14 @@ import os
 from pathlib import Path
 import pandas as pd
 
-from dash import Dash, Input, Output, State, dcc, html, no_update
+from dash import Dash, Input, Output, State, callback_context, dcc, html, no_update
 import plotly.io as pio
 
 from src.data_loader import read_any, read_upload, validate_columns, coerce_types
 from src.transforms import add_derived, apply_brand_filter
 from src.settings_store import get_all_settings, set_setting
 from src.ui_layout import sidebar, top_bar, top_filters, page_container
-from src.pages import (
-    render_home,
-    render_processos,
-    render_produtos,
-    render_atrasos,
-    render_metas,
-    render_configuracoes,
-)
+from src.pages import render_painel
 
 APP_DIR = Path(__file__).parent.resolve()
 DB_PATH = str(APP_DIR / "data" / "app.db")
@@ -31,6 +24,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ASSET_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_DATA_PATH = os.environ.get("PCP_DATA_PATH", "")
+ADMIN_PASSWORD = "123456"
 
 
 def _read_latest_path() -> str | None:
@@ -100,6 +94,7 @@ app.layout = html.Div(
         dcc.Store(id="store-data"),
         dcc.Store(id="store-meta"),
         dcc.Store(id="store-settings"),
+        dcc.Store(id="store-admin-auth", data=False),
         html.Div(
             [
                 sidebar(),
@@ -184,16 +179,16 @@ def update_filter_options(data_json):
     Output("page", "children"),
     Output("logo-slot", "children"),
     Output("status-line", "children"),
-    Input("nav", "value"),
     Input("store-data", "data"),
     Input("store-settings", "data"),
+    Input("store-admin-auth", "data"),
     Input("f_marca", "value"),
     Input("f_colecao", "value"),
     Input("f_processo", "value"),
     Input("f_status_prod", "value"),
     Input("f_status_venc", "value"),
 )
-def render_page(nav, data_json, settings, f_marca, f_colecao, f_processo, f_status_prod, f_status_venc):
+def render_page(data_json, settings, admin_auth, f_marca, f_colecao, f_processo, f_status_prod, f_status_venc):
     settings = settings or {}
     df = pd.read_json(data_json, orient="split") if data_json else pd.DataFrame()
 
@@ -214,19 +209,14 @@ def render_page(nav, data_json, settings, f_marca, f_colecao, f_processo, f_stat
 
     critical_delay_days = int(settings.get("critical_delay_days") or 1)
 
-    if nav == "processos":
-        page = render_processos(df)
-    elif nav == "produtos":
-        page = render_produtos(df)
-    elif nav == "atrasos":
-        page = render_atrasos(df, critical_delay_days)
-    elif nav == "metas":
-        page = render_metas(df, settings)
-    elif nav == "configuracoes":
-        brands = sorted(df["MARCA"].dropna().unique().tolist()) if not df.empty else []
-        page = render_configuracoes(brands, settings)
-    else:
-        page = render_home(df)
+    brands = sorted(df["MARCA"].dropna().unique().tolist()) if not df.empty else []
+    page = render_painel(
+        df=df,
+        settings=settings,
+        brands=brands,
+        admin_auth=bool(admin_auth),
+        critical_delay_days=critical_delay_days,
+    )
 
     logo_path = settings.get("logo_path", "assets/logo.png")
     logo_component = html.Img(src=f"/{logo_path}", className="logo") if Path(logo_path).exists() else html.Div("Logo")
@@ -238,6 +228,8 @@ def render_page(nav, data_json, settings, f_marca, f_colecao, f_processo, f_stat
     Output("store-settings", "data"),
     Output("settings-status", "children"),
     Input("btn-save-settings", "n_clicks"),
+    Input("upload-logo", "contents"),
+    State("upload-logo", "filename"),
     State("weekly-target", "value"),
     State("workdays", "value"),
     State("daily-target-override", "value"),
@@ -245,38 +237,59 @@ def render_page(nav, data_json, settings, f_marca, f_colecao, f_processo, f_stat
     State("critical-delay-days", "value"),
     prevent_initial_call=True,
 )
-def save_settings(_, weekly_target, workdays, daily_target_override, selected_brands, critical_delay_days):
-    set_setting(DB_PATH, "weekly_target", weekly_target)
-    set_setting(DB_PATH, "workdays", workdays)
-    set_setting(DB_PATH, "daily_target_override", daily_target_override)
-    set_setting(DB_PATH, "selected_brands", selected_brands or [])
-    set_setting(DB_PATH, "critical_delay_days", critical_delay_days)
+def save_settings_or_logo(
+    n_clicks,
+    contents,
+    filename,
+    weekly_target,
+    workdays,
+    daily_target_override,
+    selected_brands,
+    critical_delay_days,
+):
+    triggered = (
+        callback_context.triggered[0]["prop_id"].split(".")[0]
+        if callback_context.triggered
+        else None
+    )
+    if triggered == "upload-logo":
+        if not contents or not filename:
+            return no_update, no_update
+        if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
+            return no_update, "Formato inválido. Use PNG ou JPG."
 
-    settings = get_all_settings(DB_PATH)
-    return settings, "Configurações salvas."
+        content_type, content_string = contents.split(",")
+        decoded = base64.b64decode(content_string)
+        logo_path = ASSET_DIR / "logo.png"
+        logo_path.write_bytes(decoded)
+        set_setting(DB_PATH, "logo_path", "assets/logo.png")
+        settings = get_all_settings(DB_PATH)
+        return settings, "Logo atualizado."
+
+    if triggered == "btn-save-settings":
+        set_setting(DB_PATH, "weekly_target", weekly_target)
+        set_setting(DB_PATH, "workdays", workdays)
+        set_setting(DB_PATH, "daily_target_override", daily_target_override)
+        set_setting(DB_PATH, "selected_brands", selected_brands or [])
+        set_setting(DB_PATH, "critical_delay_days", critical_delay_days)
+
+        settings = get_all_settings(DB_PATH)
+        return settings, "Configurações salvas."
+
+    return no_update, no_update
 
 
 @app.callback(
-    Output("store-settings", "data", allow_duplicate=True),
-    Output("settings-status", "children", allow_duplicate=True),
-    Input("upload-logo", "contents"),
-    State("upload-logo", "filename"),
+    Output("store-admin-auth", "data"),
+    Output("admin-status", "children"),
+    Input("btn-admin-login", "n_clicks"),
+    State("admin-password", "value"),
     prevent_initial_call=True,
 )
-def upload_logo(contents, filename):
-    if not contents or not filename:
-        return no_update, no_update
-    if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
-        return no_update, "Formato inválido. Use PNG ou JPG."
-
-    content_type, content_string = contents.split(",")
-    decoded = base64.b64decode(content_string)
-    logo_path = ASSET_DIR / "logo.png"
-    logo_path.write_bytes(decoded)
-    set_setting(DB_PATH, "logo_path", "assets/logo.png")
-
-    settings = get_all_settings(DB_PATH)
-    return settings, "Logo atualizado."
+def authenticate_admin(_, password):
+    if password == ADMIN_PASSWORD:
+        return True, "Acesso liberado."
+    return False, "Senha incorreta."
 
 
 if __name__ == "__main__":

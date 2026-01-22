@@ -48,6 +48,14 @@ body {
   gap: 8px;
 }
 
+.nav-title {
+  background: var(--panel-2);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .nav .dash-options label {
   background: var(--panel-2);
   padding: 10px 12px;
@@ -97,6 +105,49 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--panel-2);
+  border-radius: 16px;
+}
+
+.section-title {
+  margin: 0;
+}
+
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-login {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-input {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.admin-config {
+  opacity: 1;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .kpi-grid {
