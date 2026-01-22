@@ -37,6 +37,24 @@ def _login_panel():
 
 
 def layout(available_brands, settings, is_authenticated: bool):
+    content = [configuracoes.layout(available_brands, settings)]
+    if not is_authenticated:
+        content.insert(
+            0,
+            html.Div(
+                [
+                    html.Div("Configurações desbloqueadas", className="panel-title"),
+                    html.Div(
+                        "Para facilitar o uso inicial, as configurações estão abertas. "
+                        "Se quiser proteger no futuro, reative o login.",
+                        className="small",
+                    ),
+                ],
+                className="panel",
+            ),
+        )
+        content.append(_login_panel())
+
     return html.Div(
         [
             html.Div(
@@ -47,6 +65,6 @@ def layout(available_brands, settings, is_authenticated: bool):
                 className="row",
                 style={"justifyContent": "space-between"},
             ),
-            configuracoes.layout(available_brands, settings) if is_authenticated else _login_panel(),
+            *content,
         ]
     )

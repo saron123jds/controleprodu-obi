@@ -1,4 +1,3 @@
-\
 from __future__ import annotations
 from dash import html, dcc
 
@@ -17,34 +16,14 @@ def layout(available_brands, settings):
                 [
                     html.Div("Configurações", className="panel-title"),
                     html.Div("Aqui você define metas, escolhe marcas exibidas e envia a logo do dashboard.", className="small"),
+                    html.Div("O upload do arquivo fica disponível na barra lateral esquerda.", className="small"),
                 ],
                 className="panel",
             ),
 
             html.Div(
                 [
-                    html.Div("1) Upload do arquivo (Excel/CSV)", className="panel-title"),
-                    dcc.Upload(
-                        id="upload-data",
-                        children=html.Div(["Arraste e solte aqui ou ", html.B("clique para selecionar")]),
-                        style={
-                            "width": "100%", "height": "90px", "lineHeight": "90px",
-                            "borderWidth": "1px", "borderStyle": "dashed",
-                            "borderRadius": "18px", "textAlign": "center",
-                            "borderColor": "rgba(255,255,255,.18)",
-                            "background": "rgba(255,255,255,.03)"
-                        },
-                        multiple=False,
-                    ),
-                    html.Div(id="upload-msg", className="small", style={"marginTop":"8px"}),
-                    html.Button("Recarregar dados", id="btn-reload", className="btn", style={"marginTop":"10px"}),
-                ],
-                className="panel",
-            ),
-
-            html.Div(
-                [
-                    html.Div("2) Marcas exibidas no painel", className="panel-title"),
+                    html.Div("1) Marcas exibidas no painel", className="panel-title"),
                     dcc.Dropdown(
                         id="cfg-brands",
                         options=[{"label": b, "value": b} for b in sorted(available_brands)],
@@ -59,7 +38,7 @@ def layout(available_brands, settings):
 
             html.Div(
                 [
-                    html.Div("3) Metas", className="panel-title"),
+                    html.Div("2) Metas", className="panel-title"),
                     html.Div(
                         [
                             html.Div(
@@ -95,7 +74,7 @@ def layout(available_brands, settings):
 
             html.Div(
                 [
-                    html.Div("4) Logo do dashboard", className="panel-title"),
+                    html.Div("3) Logo do dashboard", className="panel-title"),
                     dcc.Upload(
                         id="upload-logo",
                         children=html.Div(["Envie um PNG/JPG da sua logo"]),
@@ -115,7 +94,7 @@ def layout(available_brands, settings):
 
             html.Div(
                 [
-                    html.Div("5) Regras", className="panel-title"),
+                    html.Div("4) Regras", className="panel-title"),
                     html.Div(
                         [
                             html.Div(
