@@ -4,6 +4,7 @@ from dash import dcc, html
 import pandas as pd
 import plotly.express as px
 
+from src.kpis import compute_projection
 
 def _week_bounds(today: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
     start = today - pd.Timedelta(days=today.weekday())
@@ -31,6 +32,8 @@ def render_metas(df: pd.DataFrame, settings: dict) -> html.Div:
             (concluido["CONCLUSAO_PRODUCAO"].dt.normalize() >= week_start)
             & (concluido["CONCLUSAO_PRODUCAO"].dt.normalize() <= week_end)
         ]["QTDE_PRODUCAO"].sum()
+
+    projection = compute_projection(weekly_target, concluded_week, int(workdays), today)
 
     if not df.empty:
         week_data = df[
@@ -67,6 +70,20 @@ def render_metas(df: pd.DataFrame, settings: dict) -> html.Div:
                         [
                             html.Div("Meta diária", className="kpi-title"),
                             html.Div(f"{daily_target:,.0f}", className="kpi-value"),
+                        ],
+                        className="kpi-card",
+                    ),
+                    html.Div(
+                        [
+                            html.Div("Projeção semanal", className="kpi-title"),
+                            html.Div(f"{projection['projected_week']:,.0f}", className="kpi-value"),
+                        ],
+                        className="kpi-card",
+                    ),
+                    html.Div(
+                        [
+                            html.Div("Ritmo diário", className="kpi-title"),
+                            html.Div(f"{projection['pace_daily']:,.1f}", className="kpi-value"),
                         ],
                         className="kpi-card",
                     ),

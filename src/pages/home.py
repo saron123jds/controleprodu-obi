@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dash import dcc, html
+from dash import dash_table, dcc, html
 import pandas as pd
 import plotly.express as px
 
-from src.kpis import compute_kpis
+from src.kpis import compute_kpis, compute_kpis_by
+from src.transforms import compute_completion_trends
 
 
 def _kpi_card(title: str, value: str) -> html.Div:
@@ -17,8 +18,9 @@ def _kpi_card(title: str, value: str) -> html.Div:
     )
 
 
-def render_home(df: pd.DataFrame) -> html.Div:
+def render_home(df: pd.DataFrame, data_quality_alerts: list[str]) -> html.Div:
     kpis = compute_kpis(df)
+    trends = compute_completion_trends(df)
 
     line_fig = px.line(
         df,
@@ -27,6 +29,29 @@ def render_home(df: pd.DataFrame) -> html.Div:
         title="Peças concluídas por dia",
         markers=True,
     ) if not df.empty else px.line(title="Peças concluídas por dia")
+
+    weekly_fig = (
+        px.line(
+            trends["weekly"],
+            x="PERIODO",
+            y="QTDE_PRODUCAO",
+            title="Peças concluídas por semana",
+            markers=True,
+        )
+        if not trends["weekly"].empty
+        else px.line(title="Peças concluídas por semana")
+    )
+    monthly_fig = (
+        px.line(
+            trends["monthly"],
+            x="PERIODO",
+            y="QTDE_PRODUCAO",
+            title="Peças concluídas por mês",
+            markers=True,
+        )
+        if not trends["monthly"].empty
+        else px.line(title="Peças concluídas por mês")
+    )
 
     process_fig = px.bar(
         df.groupby("NOME_PROCESSO", as_index=False)["QTDE_PRODUCAO"].sum()
@@ -44,6 +69,27 @@ def render_home(df: pd.DataFrame) -> html.Div:
         title="Distribuição Status Vencimento",
     ) if not df.empty else px.pie(title="Distribuição Status Vencimento")
 
+    by_process = compute_kpis_by(df, "NOME_PROCESSO")
+    by_responsavel = compute_kpis_by(df, "RESPONSAVEL")
+
+    table_process = dash_table.DataTable(
+        columns=[{"name": col.replace("_", " ").title(), "id": col} for col in by_process.columns],
+        data=by_process.sort_values("pecas", ascending=False).head(10).to_dict("records") if not by_process.empty else [],
+        page_size=10,
+        style_table={"overflowX": "auto"},
+        style_cell={"backgroundColor": "#0f172a", "color": "#e2e8f0", "padding": "6px"},
+        style_header={"backgroundColor": "#1e293b", "fontWeight": "bold"},
+    )
+
+    table_resp = dash_table.DataTable(
+        columns=[{"name": col.replace("_", " ").title(), "id": col} for col in by_responsavel.columns],
+        data=by_responsavel.sort_values("pecas", ascending=False).head(10).to_dict("records") if not by_responsavel.empty else [],
+        page_size=10,
+        style_table={"overflowX": "auto"},
+        style_cell={"backgroundColor": "#0f172a", "color": "#e2e8f0", "padding": "6px"},
+        style_header={"backgroundColor": "#1e293b", "fontWeight": "bold"},
+    )
+
     return html.Div(
         [
             html.Div(
@@ -59,9 +105,39 @@ def render_home(df: pd.DataFrame) -> html.Div:
             ),
             html.Div(
                 [
+                    html.H4("Alertas de qualidade de dados"),
+                    html.Ul([html.Li(alert) for alert in data_quality_alerts])
+                    if data_quality_alerts
+                    else html.Div("Nenhum alerta identificado.", className="muted"),
+                ],
+                className="card",
+            ),
+            html.Div(
+                [
                     dcc.Graph(figure=line_fig, className="chart"),
+                    dcc.Graph(figure=weekly_fig, className="chart"),
+                    dcc.Graph(figure=monthly_fig, className="chart"),
                     dcc.Graph(figure=process_fig, className="chart"),
                     dcc.Graph(figure=status_fig, className="chart"),
+                ],
+                className="chart-grid",
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.H4("KPIs por processo (Top 10)"),
+                            table_process,
+                        ],
+                        className="card",
+                    ),
+                    html.Div(
+                        [
+                            html.H4("KPIs por responsável (Top 10)"),
+                            table_resp,
+                        ],
+                        className="card",
+                    ),
                 ],
                 className="chart-grid",
             ),
