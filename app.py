@@ -39,8 +39,9 @@ def _write_latest_path(path: str) -> None:
     LATEST_UPLOAD_POINTER.write_text(path, encoding="utf-8")
 
 
-def load_data() -> tuple[pd.DataFrame, str]:
-    path = _read_latest_path() or (DEFAULT_DATA_PATH.strip() if DEFAULT_DATA_PATH else "")
+def load_data(path_override: str | None = None) -> tuple[pd.DataFrame, str]:
+    cleaned_override = path_override.strip() if path_override else ""
+    path = _read_latest_path() or cleaned_override or (DEFAULT_DATA_PATH.strip() if DEFAULT_DATA_PATH else "")
     if path and Path(path).exists():
         df = read_any(path)
         ok, missing = validate_columns(df)
@@ -131,6 +132,7 @@ app.layout = html.Div(
 )
 def init_or_reload(_, contents, filename):
     settings = get_all_settings(DB_PATH)
+    data_path = settings.get("data_path") if settings else None
 
     if contents and filename:
         try:
@@ -155,7 +157,7 @@ def init_or_reload(_, contents, filename):
             return no_update, no_update, settings, f"Erro ao carregar: {exc}"
 
     try:
-        df, status = load_data()
+        df, status = load_data(data_path)
         meta = {"source": status}
         return df.to_json(date_format="iso", orient="split"), meta, settings, status
     except Exception as exc:
@@ -246,6 +248,7 @@ def render_page(data_json, settings, admin_auth, f_marca, f_colecao, f_processo,
     State("weekly-target", "value"),
     State("workdays", "value"),
     State("daily-target-override", "value"),
+    State("data-path", "value"),
     State("selected-brands", "value"),
     State("critical-delay-days", "value"),
     prevent_initial_call=True,
@@ -257,6 +260,7 @@ def save_settings_or_logo(
     weekly_target,
     workdays,
     daily_target_override,
+    data_path,
     selected_brands,
     critical_delay_days,
 ):
@@ -283,6 +287,7 @@ def save_settings_or_logo(
         set_setting(DB_PATH, "weekly_target", weekly_target)
         set_setting(DB_PATH, "workdays", workdays)
         set_setting(DB_PATH, "daily_target_override", daily_target_override)
+        set_setting(DB_PATH, "data_path", data_path)
         set_setting(DB_PATH, "selected_brands", selected_brands or [])
         set_setting(DB_PATH, "critical_delay_days", critical_delay_days)
 

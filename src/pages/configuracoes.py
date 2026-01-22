@@ -9,6 +9,7 @@ def render_configuracoes(brands: list[str], settings: dict, admin_auth: bool, up
     workdays = settings.get("workdays") or 5
     daily_target_override = settings.get("daily_target_override")
     critical_delay_days = settings.get("critical_delay_days") or 1
+    data_path = settings.get("data_path") or ""
 
     daily_auto = weekly_target / workdays if workdays else 0
     locked = not admin_auth
@@ -44,6 +45,24 @@ def render_configuracoes(brands: list[str], settings: dict, admin_auth: bool, up
                         disabled=locked,
                     ),
                     html.Button("Recarregar dados", id="btn-reload", className="primary-btn", disabled=locked),
+                ],
+                className="card",
+            ),
+            html.Div(
+                [
+                    html.H4("Fonte de dados (caminho local)"),
+                    dcc.Input(
+                        id="data-path",
+                        type="text",
+                        value=data_path,
+                        placeholder="Ex: C:\\CONTROLE PRODUÇÃO POWERBI\\dados\\planilha.xlsx",
+                        className="input-wide",
+                        disabled=locked,
+                    ),
+                    html.Div(
+                        "Use o caminho completo do arquivo para recarregar sem upload.",
+                        className="hint",
+                    ),
                 ],
                 className="card",
             ),

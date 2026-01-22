@@ -296,6 +296,16 @@ body {
   border-radius: 8px;
 }
 
+.input-wide {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .admin-config {
   opacity: 1;
 }
