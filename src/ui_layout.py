@@ -20,9 +20,10 @@ def sidebar():
                     html.Div("Carregar dados", className="section-title"),
                     dcc.Upload(
                         id="upload-data",
-                        children=html.Div(["Arraste e solte aqui ou ", html.B("clique para selecionar")]),
+                        children=html.Div(["Arraste e solte aqui ou ", html.B("clique para selecionar"), " (Excel/CSV)"]),
                         className="upload-box",
                         multiple=False,
+                        accept=".csv,.xlsx,.xls",
                     ),
                     html.Button("Recarregar dados", id="btn-reload", className="btn btn-block"),
                 ],
