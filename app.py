@@ -225,7 +225,7 @@ def render_page(data_json, settings, admin_auth, f_marca, f_colecao, f_processo,
 
 
 @app.callback(
-    Output("store-settings", "data"),
+    Output("store-settings", "data", allow_duplicate=True),
     Output("settings-status", "children"),
     Input("btn-save-settings", "n_clicks"),
     Input("upload-logo", "contents"),
