@@ -6,14 +6,15 @@ from pathlib import Path
 import pandas as pd
 
 from dash import Dash, html, dcc, Input, Output, State, no_update
+import dash
 import plotly.io as pio
 
 from src.data_loader import read_any, read_upload, validate_columns, coerce_types
 from src.transforms import add_derived, apply_brand_filter
 from src.settings_store import get_all_settings, set_setting
-from src.ui_layout import sidebar, top_filters, page_container
+from src.ui_layout import sidebar, top_bar, top_filters, page_container
 
-from src.pages import home, processos, produtos, atrasos, metas, configuracoes
+from src.pages import dashboard, admin
 
 APP_DIR = Path(__file__).parent.resolve()
 DB_PATH = str(APP_DIR / "data" / "app.db")
@@ -88,11 +89,13 @@ app.layout = html.Div(
         dcc.Store(id="store-data"),
         dcc.Store(id="store-meta"),
         dcc.Store(id="store-settings"),
+        dcc.Store(id="store-admin-auth", data=False),
         html.Div(
             [
                 sidebar(),
                 html.Div(
                     [
+                        top_bar(),
                         top_filters(),
                         page_container(),
                     ],
@@ -176,13 +179,14 @@ def update_filter_options(data_json):
     Input("nav", "value"),
     Input("store-data", "data"),
     Input("store-settings", "data"),
+    Input("store-admin-auth", "data"),
     Input("f_marca", "value"),
     Input("f_colecao", "value"),
     Input("f_processo", "value"),
     Input("f_status_prod", "value"),
     Input("f_status_venc", "value"),
 )
-def render_page(nav, data_json, settings, f_marca, f_colecao, f_processo, f_status_prod, f_status_venc):
+def render_page(nav, data_json, settings, admin_auth, f_marca, f_colecao, f_processo, f_status_prod, f_status_venc):
     settings = settings or {}
     df = pd.read_json(data_json, orient="split") if data_json else pd.DataFrame()
 
@@ -215,19 +219,42 @@ def render_page(nav, data_json, settings, f_marca, f_colecao, f_processo, f_stat
         logo = html.Div("Envie uma logo em Configurações", className="small")
 
     available_brands = sorted(df["MARCA"].dropna().astype(str).unique().tolist()) if not df.empty and "MARCA" in df.columns else []
-    if nav == "home":
-        return home.layout(df, settings), logo
-    if nav == "processos":
-        return processos.layout(df, settings), logo
-    if nav == "produtos":
-        return produtos.layout(df, settings), logo
-    if nav == "atrasos":
-        return atrasos.layout(df, settings), logo
-    if nav == "metas":
-        return metas.layout(df, settings), logo
-    if nav == "config":
-        return configuracoes.layout(available_brands, settings), logo
-    return home.layout(df, settings), logo
+    if nav == "dashboard":
+        return dashboard.layout(df, settings), logo
+    if nav == "admin":
+        return admin.layout(available_brands, settings, bool(admin_auth)), logo
+    return dashboard.layout(df, settings), logo
+
+@app.callback(
+    Output("nav", "value"),
+    Input("admin-gear", "n_clicks"),
+    Input("btn-back-dashboard", "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_admin_view(gear_clicks, back_clicks):
+    if not dash.callback_context.triggered:
+        return no_update
+    triggered = dash.callback_context.triggered[0]["prop_id"]
+    if triggered == "admin-gear.n_clicks":
+        return "admin"
+    if triggered == "btn-back-dashboard.n_clicks":
+        return "dashboard"
+    return no_update
+
+@app.callback(
+    Output("admin-login-msg", "children"),
+    Output("store-admin-auth", "data"),
+    Input("btn-admin-login", "n_clicks"),
+    State("admin-username", "value"),
+    State("admin-password", "value"),
+    prevent_initial_call=True,
+)
+def admin_login(n_clicks, username, password):
+    if not n_clicks:
+        return no_update, no_update
+    if username == "admin" and password == "123456":
+        return "Acesso liberado ✅", True
+    return "Usuário ou senha inválidos.", False
 
 @app.callback(
     Output("cfg-msg", "children"),

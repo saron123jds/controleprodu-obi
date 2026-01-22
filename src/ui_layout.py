@@ -10,21 +10,25 @@ def sidebar():
             dcc.RadioItems(
                 id="nav",
                 options=[
-                    {"label":"Visão geral", "value":"home"},
-                    {"label":"Processos", "value":"processos"},
-                    {"label":"Produtos", "value":"produtos"},
-                    {"label":"Atrasos", "value":"atrasos"},
-                    {"label":"Metas", "value":"metas"},
-                    {"label":"Configurações", "value":"config"},
+                    {"label":"Dashboard", "value":"dashboard"},
+                    {"label":"Admin", "value":"admin"},
                 ],
-                value="home",
-                className="nav",
+                value="dashboard",
+                className="nav-hidden",
             ),
-            html.Div(className="sidebar-sep"),
             html.Div(id="logo-slot"),
             html.Div(id="data-status", className="muted"),
         ],
         className="sidebar",
+    )
+
+def top_bar():
+    return html.Div(
+        [
+            html.Div("Visão geral completa", className="top-title"),
+            html.Button("⚙️", id="admin-gear", className="gear-btn", title="Admin"),
+        ],
+        className="top-bar",
     )
 
 def top_filters():
